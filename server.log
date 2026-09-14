@@ -30,3 +30,9 @@
 
   Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
 ✓ Compiled in 48ms
+✓ Compiled in 101ms
+ GET /login 200 in 2.7s (next.js: 2.2s, proxy.ts: 17ms, application-code: 450ms)
+ GET / 200 in 128ms (next.js: 60ms, proxy.ts: 14ms, application-code: 54ms)
+[browser] Uncaught TypeError: Failed to execute 'measure' on 'Performance': '​IndexRedirect' cannot have a negative time stamp.
+ GET /maintenance 200 in 294ms (next.js: 63ms, proxy.ts: 6ms, application-code: 226ms)
+ GET /maintenance 200 in 153ms (next.js: 41ms, proxy.ts: 25ms, application-code: 87ms)
