@@ -1,0 +1,361 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  STAFF
+  UNIT_OWNER
+  TENANT
+}
+
+enum UnitType {
+  RESIDENTIAL
+  COMMERCIAL
+}
+
+enum UnitOccupancyStatus {
+  OCCUPIED
+  VACANT
+}
+
+enum InvoiceStatus {
+  UNPAID
+  IN_REVIEW
+  CONFIRMED
+  REJECTED
+  DISPUTED
+  WAIVED
+}
+
+enum TicketCategory {
+  DOORS_WINDOWS
+  ELEVATOR
+  PLUMBING
+  ELECTRICAL
+  GENERATOR
+  OTHER
+}
+
+enum TicketPriority {
+  NORMAL
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  DOING
+  DONE
+  CANCELLED
+}
+
+enum UpkeepCategory {
+  MAINTENANCE
+  INVOICE_DAY
+  METER_DEADLINE
+  ANNOUNCEMENT
+  INVOICE_ISSUED
+  OPEN_TICKET
+}
+
+enum AnnouncementTarget {
+  ALL_RESIDENTS
+  SPECIFIC_UNITS
+}
+
+model Workspace {
+  id              String           @id @default(uuid())
+  name            String           @db.VarChar(255)
+  slug            String           @unique @db.VarChar(100)
+  address         String           @db.Text
+  city            String           @default("Addis Ababa") @db.VarChar(100)
+  country         String           @default("Ethiopia") @db.VarChar(100)
+  currency        String           @default("ETB") @db.VarChar(10)
+  legacy_plan     Boolean          @default(true)
+  created_at      DateTime         @default(now()) @db.Timestamptz
+  updated_at      DateTime         @updatedAt @db.Timestamptz
+
+  members         WorkspaceMember[]
+  units           Unit[]
+  invoices        Invoice[]
+  tickets         MaintenanceTicket[]
+  upkeeps         UpkeepEvent[]
+  announcements   Announcement[]
+  expenses        Expense[]
+  bank_accounts   BankAccount[]
+  meter_readings  MeterReading[]
+
+  @@map("workspaces")
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique @db.VarChar(255)
+  phone_number    String?          @db.VarChar(30)
+  full_name       String           @db.VarChar(255)
+  password_hash   String           @db.Text
+  telegram_chat_id String?         @db.VarChar(100)
+  created_at      DateTime         @default(now()) @db.Timestamptz
+  updated_at      DateTime         @updatedAt @db.Timestamptz
+
+  memberships     WorkspaceMember[]
+  assigned_tickets MaintenanceTicket[] @relation("TicketAssignee")
+  reported_tickets MaintenanceTicket[] @relation("TicketReporter")
+  authored_announcements Announcement[]
+  sent_messages   DirectMessage[]
+
+  @@map("users")
+}
+
+model WorkspaceMember {
+  id              String    @id @default(uuid())
+  workspace_id    String
+  user_id         String
+  role            Role      @default(TENANT)
+  created_at      DateTime  @default(now()) @db.Timestamptz
+
+  workspace       Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([workspace_id, user_id])
+  @@map("workspace_members")
+}
+
+model Unit {
+  id              String              @id @default(uuid())
+  workspace_id    String
+  unit_number     String              @db.VarChar(50)
+  type            UnitType            @default(RESIDENTIAL)
+  status          UnitOccupancyStatus @default(OCCUPIED)
+  floor           Int?
+  primary_resident_name String?       @db.VarChar(255)
+  phone_number    String?             @db.VarChar(50)
+  created_at      DateTime            @default(now()) @db.Timestamptz
+
+  workspace       Workspace           @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  invoices        Invoice[]
+  tickets         MaintenanceTicket[]
+  meter_readings  MeterReading[]
+  message_threads MessageThread[]
+
+  @@unique([workspace_id, unit_number])
+  @@index([workspace_id, status])
+  @@map("units")
+}
+
+model BankAccount {
+  id              String    @id @default(uuid())
+  workspace_id    String
+  bank_name       String    @db.VarChar(100)
+  account_name    String    @db.VarChar(255)
+  account_number  String    @db.VarChar(100)
+  is_active       Boolean   @default(true)
+
+  workspace       Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@map("bank_accounts")
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  workspace_id    String
+  unit_id         String
+  billing_month   String        @db.VarChar(7) // Format: "YYYY-MM"
+  title           String        @db.VarChar(255)
+  expected_amount Decimal       @db.Decimal(12, 2)
+  claimed_amount  Decimal?      @db.Decimal(12, 2)
+  verified_amount Decimal?      @db.Decimal(12, 2)
+  status          InvoiceStatus @default(UNPAID)
+  payment_method  String?       @db.VarChar(50) // "Telebirr", "CBE", "Awash Bank", "Cash"
+  notes           String?       @db.Text
+  due_date        DateTime      @db.Date
+  created_at      DateTime      @default(now()) @db.Timestamptz
+  updated_at      DateTime      @updatedAt @db.Timestamptz
+
+  workspace       Workspace     @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  unit            Unit          @relation(fields: [unit_id], references: [id], onDelete: Cascade)
+  slips           PaymentSlip[]
+  disputes        Dispute[]
+
+  @@index([workspace_id, billing_month, status])
+  @@index([unit_id, status])
+  @@map("invoices")
+}
+
+model PaymentSlip {
+  id              String    @id @default(uuid())
+  invoice_id      String
+  file_url        String?   @db.Text
+  raw_sms_content String?   @db.Text // FIXED from Text?
+  rejection_reason String?  @db.VarChar(255)
+  reviewed_by_user_id String?
+  reviewed_at     DateTime? @db.Timestamptz
+  created_at      DateTime  @default(now()) @db.Timestamptz
+
+  invoice         Invoice   @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("payment_slips")
+}
+
+model Dispute {
+  id              String    @id @default(uuid())
+  invoice_id      String
+  description     String    @db.Text
+  status          String    @default("OPEN") @db.VarChar(20) // "OPEN", "RESOLVED", "DISMISSED"
+  created_at      DateTime  @default(now()) @db.Timestamptz
+  resolved_at     DateTime? @db.Timestamptz
+
+  invoice         Invoice   @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+
+  @@map("disputes")
+}
+
+model MaintenanceTicket {
+  id              String         @id @default(uuid())
+  workspace_id    String
+  unit_id         String
+  reporter_id     String?
+  assigned_to_id  String?
+  title           String         @db.VarChar(255)
+  category        TicketCategory @default(OTHER)
+  priority        TicketPriority @default(NORMAL)
+  status          TicketStatus   @default(OPEN)
+  scheduled_visit DateTime?      @db.Timestamptz
+  created_at      DateTime       @default(now()) @db.Timestamptz
+  updated_at      DateTime       @updatedAt @db.Timestamptz
+
+  workspace       Workspace      @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  unit            Unit           @relation(fields: [unit_id], references: [id], onDelete: Cascade)
+  reporter        User?          @relation("TicketReporter", fields: [reporter_id], references: [id], onDelete: SetNull)
+  assigned_to     User?          @relation("TicketAssignee", fields: [assigned_to_id], references: [id], onDelete: SetNull)
+
+  @@index([workspace_id, status])
+  @@map("maintenance_tickets")
+}
+
+model UpkeepEvent {
+  id              String         @id @default(uuid())
+  workspace_id    String
+  title           String         @db.VarChar(255)
+  category        UpkeepCategory @default(MAINTENANCE)
+  event_date      DateTime       @db.Date
+  notes           String?        @db.Text
+  created_at      DateTime       @default(now()) @db.Timestamptz
+
+  workspace       Workspace      @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@index([workspace_id, event_date])
+  @@map("upkeep_events")
+}
+
+model Announcement {
+  id              String             @id @default(uuid())
+  workspace_id    String
+  author_id       String
+  title           String             @db.VarChar(255)
+  body            String             @db.Text
+  template_tag    String?            @db.VarChar(50)
+  target_scope    AnnouncementTarget @default(ALL_RESIDENTS)
+  is_pinned       Boolean            @default(false)
+  scheduled_for   DateTime?          @db.Timestamptz
+  created_at      DateTime           @default(now()) @db.Timestamptz
+
+  workspace       Workspace          @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  author          User               @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  comments        AnnouncementComment[]
+  likes           AnnouncementLike[]
+
+  @@index([workspace_id, created_at])
+  @@map("announcements")
+}
+
+model AnnouncementComment {
+  id              String       @id @default(uuid())
+  announcement_id String
+  author_name     String       @db.VarChar(255)
+  comment         String       @db.Text
+  created_at      DateTime     @default(now()) @db.Timestamptz
+
+  announcement    Announcement @relation(fields: [announcement_id], references: [id], onDelete: Cascade)
+
+  @@map("announcement_comments")
+}
+
+model AnnouncementLike {
+  id              String       @id @default(uuid())
+  announcement_id String
+  user_id         String
+  created_at      DateTime     @default(now()) @db.Timestamptz
+
+  announcement    Announcement @relation(fields: [announcement_id], references: [id], onDelete: Cascade)
+
+  @@unique([announcement_id, user_id])
+  @@map("announcement_likes")
+}
+
+model MessageThread {
+  id              String          @id @default(uuid())
+  unit_id         String
+  created_at      DateTime        @default(now()) @db.Timestamptz
+  updated_at      DateTime        @updatedAt @db.Timestamptz
+
+  unit            Unit            @relation(fields: [unit_id], references: [id], onDelete: Cascade)
+  messages        DirectMessage[]
+
+  @@map("message_threads")
+}
+
+model DirectMessage {
+  id              String        @id @default(uuid())
+  thread_id       String
+  sender_user_id  String
+  body            String        @db.Text
+  is_read         Boolean       @default(false)
+  created_at      DateTime      @default(now()) @db.Timestamptz
+
+  thread          MessageThread @relation(fields: [thread_id], references: [id], onDelete: Cascade)
+  sender          User          @relation(fields: [sender_user_id], references: [id], onDelete: Cascade)
+
+  @@map("direct_messages")
+}
+
+model MeterReading {
+  id              String    @id @default(uuid())
+  workspace_id    String
+  unit_id         String
+  utility_type    String    @db.VarChar(20) // "WATER" or "ELECTRIC"
+  previous_reading Decimal  @db.Decimal(10, 2)
+  current_reading  Decimal  @db.Decimal(10, 2)
+  consumption      Decimal  @db.Decimal(10, 2)
+  reading_month   String    @db.VarChar(7) // "YYYY-MM"
+  recorded_at     DateTime  @default(now()) @db.Timestamptz
+
+  workspace       Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+  unit            Unit      @relation(fields: [unit_id], references: [id], onDelete: Cascade)
+
+  @@index([workspace_id, reading_month])
+  @@map("meter_readings")
+}
+
+model Expense {
+  id              String    @id @default(uuid())
+  workspace_id    String
+  title           String    @db.VarChar(255)
+  category        String    @db.VarChar(100) // "Repairs", "Security", "Fuel", "Janitorial"
+  vendor_name     String    @db.VarChar(255)
+  amount          Decimal   @db.Decimal(12, 2)
+  date            DateTime  @db.Date
+  receipt_url     String?   @db.Text
+  created_at      DateTime  @default(now()) @db.Timestamptz
+
+  workspace       Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+
+  @@index([workspace_id, date])
+  @@map("expenses")
+}

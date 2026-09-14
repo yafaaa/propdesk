@@ -1,0 +1,17 @@
+
+> my-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.5 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+- Environments: .env
+✓ Ready in 569ms
+✓ Running next.config.ts took 48ms
+
+ GET / 200 in 3.7s (next.js: 3.3s, application-code: 427ms)
+ GET /invoices 200 in 1499ms (next.js: 1249ms, application-code: 250ms)
+ GET /maintenance 200 in 940ms (next.js: 820ms, application-code: 120ms)
+ GET /announcements 200 in 547ms (next.js: 415ms, application-code: 132ms)
+ GET /calendar 200 in 1690ms (next.js: 1416ms, application-code: 275ms)
+ GET /community 200 in 969ms (next.js: 822ms, application-code: 147ms)
