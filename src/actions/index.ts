@@ -58,7 +58,7 @@ export async function reviewPaymentSlip(invoiceId: string, action: 'CONFIRM' | '
 export async function claimTicket(ticketId: string) {
   const { workspaceId, userId } = await getTenantContext();
 
-  await prisma.maintenanceTicket.update({
+  await prisma.maintenanceTicket.updateMany({
     where: { id: ticketId, workspace_id: workspaceId },
     data: {
       status: TicketStatus.DOING,
