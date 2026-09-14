@@ -15,3 +15,18 @@
  GET /announcements 200 in 547ms (next.js: 415ms, application-code: 132ms)
  GET /calendar 200 in 1690ms (next.js: 1416ms, application-code: 275ms)
  GET /community 200 in 969ms (next.js: 822ms, application-code: 147ms)
+ GET / 307 in 1727ms (next.js: 1367ms, application-code: 361ms)
+ GET /admin 200 in 1111ms (next.js: 768ms, application-code: 343ms)
+ GET /resident 200 in 1236ms (next.js: 1034ms, application-code: 202ms)
+ GET /resident/tickets 200 in 647ms (next.js: 460ms, application-code: 187ms)
+ GET /resident/profile 200 in 760ms (next.js: 561ms, application-code: 199ms)
+ GET /maintenance 200 in 1184ms (next.js: 1017ms, application-code: 167ms)
+ GET /maintenance/tools 200 in 475ms (next.js: 317ms, application-code: 158ms)
+ GET /maintenance/profile 200 in 969ms (next.js: 805ms, application-code: 164ms)
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Compiled in 48ms
