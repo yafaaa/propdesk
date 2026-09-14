@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Wrench, AlertCircle, CalendarClock, Download, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default function Dashboard() {
   return (
@@ -65,21 +66,29 @@ export default function Dashboard() {
             <CardDescription>Tasks requiring your immediate attention.</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
-            <Button className="h-24 flex-col gap-2" variant="outline">
-              <FileText className="h-6 w-6" />
-              Review Payments (212)
+            <Button className="h-24 flex-col gap-2" variant="outline" asChild>
+              <Link href="/admin/invoices">
+                <FileText className="h-6 w-6" />
+                Review Payments (212)
+              </Link>
             </Button>
-            <Button className="h-24 flex-col gap-2" variant="outline">
-              <AlertCircle className="h-6 w-6" />
-              Follow up Overdue (59)
+            <Button className="h-24 flex-col gap-2" variant="outline" asChild>
+              <Link href="/admin/invoices">
+                <AlertCircle className="h-6 w-6" />
+                Follow up Overdue (59)
+              </Link>
             </Button>
-            <Button className="h-24 flex-col gap-2" variant="outline">
-              <Wrench className="h-6 w-6" />
-              Manage Work Orders (4)
+            <Button className="h-24 flex-col gap-2" variant="outline" asChild>
+              <Link href="/admin/maintenance">
+                <Wrench className="h-6 w-6" />
+                Manage Work Orders (4)
+              </Link>
             </Button>
-            <Button className="h-24 flex-col gap-2" variant="outline">
-              <CalendarClock className="h-6 w-6" />
-              Schedule Upkeep
+            <Button className="h-24 flex-col gap-2" variant="outline" asChild>
+              <Link href="/admin/calendar">
+                <CalendarClock className="h-6 w-6" />
+                Schedule Upkeep
+              </Link>
             </Button>
           </CardContent>
         </Card>
