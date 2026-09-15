@@ -4,8 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Wrench, Smartphone, Plus, ClipboardList, Droplets } from "lucide-react";
-import { TelegramBridgeBox } from "@/components/portal/telegram-bridge";
+import { Wrench, Plus, ClipboardList, Droplets } from "lucide-react";
 
 export default function MaintenanceProfilePage() {
   return (
@@ -75,11 +74,6 @@ export default function MaintenanceProfilePage() {
             <span>Unit water meters</span>
           </Button>
         </div>
-      </div>
-
-      {/* Telegram Bridge */}
-      <div className="mt-4">
-        <TelegramBridgeBox description="Connect bot for real-time urgent ticket dispatch & alerts." />
       </div>
 
     </div>

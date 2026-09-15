@@ -69,10 +69,6 @@ export default function AnnouncementsPage() {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <Label htmlFor="content">Message Body</Label>
-              <Button variant="ghost" size="sm" className="h-8 gap-1 text-primary">
-                <Sparkles className="h-3 w-3" />
-                Draft with AI
-              </Button>
             </div>
             <Textarea
               id="content"

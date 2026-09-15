@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { setCookie } from "cookies-next"; // need to install this
 import { useRouter } from "next/navigation";
 import { Building2, Home, Wrench } from "lucide-react";
+import { useI18n } from "@/i18n/context";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useI18n();
 
   const login = (role: string) => {
     // Basic mock authentication: setting a cookie
@@ -27,8 +29,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome to PropDesk</CardTitle>
-          <CardDescription>Select a role to log in</CardDescription>
+          <CardTitle className="text-2xl">{t('welcome')}</CardTitle>
+          <CardDescription>{t('select_role')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button
@@ -39,7 +41,7 @@ export default function LoginPage() {
             <div className="p-2 bg-primary/10 rounded-full text-primary">
               <Building2 className="h-6 w-6" />
             </div>
-            Admin / Manager
+            {t('admin_manager')}
           </Button>
 
           <Button
@@ -50,7 +52,7 @@ export default function LoginPage() {
             <div className="p-2 bg-blue-500/10 rounded-full text-blue-600">
               <Home className="h-6 w-6" />
             </div>
-            Resident / Owner
+            {t('resident_owner')}
           </Button>
 
           <Button
@@ -61,7 +63,7 @@ export default function LoginPage() {
             <div className="p-2 bg-orange-500/10 rounded-full text-orange-600">
               <Wrench className="h-6 w-6" />
             </div>
-            Maintenance Staff
+            {t('maintenance_staff')}
           </Button>
         </CardContent>
       </Card>

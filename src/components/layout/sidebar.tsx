@@ -1,26 +1,30 @@
+"use client";
+
 import Link from "next/link";
 import { LayoutDashboard, FileText, Wrench, Megaphone, CalendarDays, Users, Settings } from "lucide-react";
+import { useI18n } from "@/i18n/context";
 
 export function Sidebar({ role = "ADMIN" }: { role?: string }) {
+  const { t } = useI18n();
 
   const renderLinks = () => {
     if (role === 'RESIDENT' || role === 'UNIT_OWNER') {
       return (
         <>
           <Link href="/resident" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <LayoutDashboard className="h-4 w-4" /> Home
+            <LayoutDashboard className="h-4 w-4" /> {t('home')}
           </Link>
           <Link href="/resident/dues" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <FileText className="h-4 w-4" /> Dues
+            <FileText className="h-4 w-4" /> {t('dues')}
           </Link>
           <Link href="/resident/messages" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Megaphone className="h-4 w-4" /> Messages
+            <Megaphone className="h-4 w-4" /> {t('messages')}
           </Link>
           <Link href="/resident/tickets" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Wrench className="h-4 w-4" /> Tickets
+            <Wrench className="h-4 w-4" /> {t('tickets')}
           </Link>
           <Link href="/resident/profile" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Users className="h-4 w-4" /> Profile
+            <Users className="h-4 w-4" /> {t('profile')}
           </Link>
         </>
       );
@@ -28,19 +32,19 @@ export function Sidebar({ role = "ADMIN" }: { role?: string }) {
       return (
         <>
           <Link href="/maintenance" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <LayoutDashboard className="h-4 w-4" /> Home
+            <LayoutDashboard className="h-4 w-4" /> {t('home')}
           </Link>
           <Link href="/maintenance/tools" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Wrench className="h-4 w-4" /> Workspace
+            <Wrench className="h-4 w-4" /> {t('workspace')}
           </Link>
           <Link href="/maintenance/messages" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Megaphone className="h-4 w-4" /> Messages
+            <Megaphone className="h-4 w-4" /> {t('messages')}
           </Link>
           <Link href="/maintenance/tickets" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Wrench className="h-4 w-4" /> Maintenance
+            <Wrench className="h-4 w-4" /> {t('maintenance')}
           </Link>
           <Link href="/maintenance/profile" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Users className="h-4 w-4" /> Profile
+            <Users className="h-4 w-4" /> {t('profile')}
           </Link>
         </>
       );
@@ -49,22 +53,19 @@ export function Sidebar({ role = "ADMIN" }: { role?: string }) {
       return (
         <>
           <Link href="/admin" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <LayoutDashboard className="h-4 w-4" /> Dashboard
+            <LayoutDashboard className="h-4 w-4" /> {t('home')}
           </Link>
           <Link href="/admin/invoices" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <FileText className="h-4 w-4" /> Invoices & Payments
-          </Link>
-          <Link href="/admin/maintenance" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Wrench className="h-4 w-4" /> Maintenance
-          </Link>
-          <Link href="/admin/announcements" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Megaphone className="h-4 w-4" /> Announcements
-          </Link>
-          <Link href="/admin/calendar" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <CalendarDays className="h-4 w-4" /> Upkeep Calendar
+            <FileText className="h-4 w-4" /> {t('invoices_payments')}
           </Link>
           <Link href="/admin/community" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
-            <Users className="h-4 w-4" /> Community & Association
+            <Megaphone className="h-4 w-4" /> {t('messages')}
+          </Link>
+          <Link href="/admin/maintenance" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+            <Wrench className="h-4 w-4" /> {t('maintenance')}
+          </Link>
+          <Link href="/admin/profile" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+            <Users className="h-4 w-4" /> {t('profile')}
           </Link>
         </>
       );
@@ -89,7 +90,7 @@ export function Sidebar({ role = "ADMIN" }: { role?: string }) {
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
         >
           <Settings className="h-4 w-4" />
-          Settings
+          {t('settings')}
         </Link>
       </div>
     </div>

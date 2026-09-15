@@ -5,11 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Building, ChevronRight, HelpCircle, FileText, Bot,
-  MessageSquareWarning, BookOpen, Shield, Info, Smartphone
+  Building, ChevronRight, HelpCircle, FileText,
+  MessageSquareWarning, BookOpen, Shield, Info
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { TelegramBridgeBox } from "@/components/portal/telegram-bridge";
 
 export default function ResidentProfilePage() {
   return (
@@ -62,9 +61,6 @@ export default function ResidentProfilePage() {
         </Card>
       </div>
 
-      {/* Telegram Bridge */}
-      <TelegramBridgeBox />
-
       {/* Guidance */}
       <Card>
         <CardContent className="p-0">
@@ -110,7 +106,6 @@ export default function ResidentProfilePage() {
             {[
               { icon: FileText, label: "Documents" },
               { icon: HelpCircle, label: "Help & support" },
-              { icon: Bot, label: "Ask AI" },
               { icon: Info, label: "Show tips again" },
               { icon: MessageSquareWarning, label: "Report Technical Problem" },
               { icon: BookOpen, label: "Community rules" },

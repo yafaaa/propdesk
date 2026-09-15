@@ -90,8 +90,6 @@ model Workspace {
   expenses             Expense[]
   bank_accounts        BankAccount[]
   meter_readings       MeterReading[]
-  tanker_sensors       TankerSensor[]
-  maintenance_supplies MaintenanceSupply[]
 
   @@map("workspaces")
 }
@@ -360,31 +358,4 @@ model Expense {
 
   @@index([workspace_id, date])
   @@map("expenses")
-}
-
-model TankerSensor {
-  id            String   @id @default(uuid())
-  workspace_id  String
-  tank_type     String // "GROUND" or "ROOF"
-  level_percent Int // 0 to 100
-  is_online     Boolean  @default(true)
-  last_ping_at  DateTime @default(now()) @db.Timestamptz
-
-  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
-
-  @@map("tanker_sensors")
-}
-
-model MaintenanceSupply {
-  id              String @id @default(uuid())
-  workspace_id    String
-  item_name       String @db.VarChar(255)
-  category        String @db.VarChar(100) // "Plumbing", "Electrical", "Tools"
-  quantity        Int    @default(0)
-  unit_of_measure String @db.VarChar(50) // "pcs", "meters", "liters"
-  reorder_level   Int    @default(5)
-
-  workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
-
-  @@map("maintenance_supplies")
 }
