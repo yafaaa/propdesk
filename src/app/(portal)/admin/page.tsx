@@ -5,9 +5,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileText, Wrench, AlertCircle, CalendarClock, Download, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useI18n } from "@/i18n/context";
+import { useEffect, useState } from "react";
+import { getAdminDashboardStats } from "@/actions/dashboard";
 
 export default function Dashboard() {
   const { t } = useI18n();
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const month = "2026-08"; // Mock period selector
+        const data = await getAdminDashboardStats(month);
+        setStats(data);
+      } catch (err: any) {
+        setError(err.message || "Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadStats();
+  }, []);
+
+  if (loading) {
+    return <div className="p-8 text-center text-muted-foreground">{t('loading')}</div>;
+  }
+
+  if (error || !stats) {
+    return <div className="p-8 text-center text-destructive">Error: {error}</div>;
+  }
 
   return (
     <>
@@ -28,8 +56,8 @@ export default function Dashboard() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">212</div>
-            <p className="text-xs text-muted-foreground">+12% from last month</p>
+            <div className="text-2xl font-bold">{stats.slipsInReview}</div>
+            <p className="text-xs text-muted-foreground">Active submissions</p>
           </CardContent>
         </Card>
         <Card>
@@ -38,8 +66,8 @@ export default function Dashboard() {
             <Wrench className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
-            <p className="text-xs text-muted-foreground">2 urgent, 2 normal</p>
+            <div className="text-2xl font-bold">{stats.activeTickets}</div>
+            <p className="text-xs text-muted-foreground">{stats.urgentTickets} urgent, {stats.normalTickets} normal</p>
           </CardContent>
         </Card>
         <Card>
@@ -48,8 +76,8 @@ export default function Dashboard() {
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">59</div>
-            <p className="text-xs text-muted-foreground">-4% from last month</p>
+            <div className="text-2xl font-bold">{stats.overdueUnits}</div>
+            <p className="text-xs text-muted-foreground">Unpaid past due date</p>
           </CardContent>
         </Card>
         <Card>
@@ -58,7 +86,7 @@ export default function Dashboard() {
             <CalendarClock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
+            <div className="text-2xl font-bold">{stats.upcomingUpkeep}</div>
             <p className="text-xs text-muted-foreground">Scheduled for this month</p>
           </CardContent>
         </Card>
@@ -74,19 +102,19 @@ export default function Dashboard() {
             <Button className="h-24 flex-col gap-2" variant="outline" asChild>
               <Link href="/admin/invoices">
                 <FileText className="h-6 w-6" />
-                {t('review_payments')} (212)
+                {t('review_payments')} ({stats.slipsInReview})
               </Link>
             </Button>
             <Button className="h-24 flex-col gap-2" variant="outline" asChild>
               <Link href="/admin/invoices">
                 <AlertCircle className="h-6 w-6" />
-                {t('follow_up_overdue')} (59)
+                {t('follow_up_overdue')} ({stats.overdueUnits})
               </Link>
             </Button>
             <Button className="h-24 flex-col gap-2" variant="outline" asChild>
               <Link href="/admin/maintenance">
                 <Wrench className="h-6 w-6" />
-                {t('manage_work_orders')} (4)
+                {t('manage_work_orders')} ({stats.activeTickets})
               </Link>
             </Button>
             <Button className="h-24 flex-col gap-2" variant="outline" asChild>
@@ -106,30 +134,30 @@ export default function Dashboard() {
           <CardContent className="space-y-6">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{t('collected')} (40%)</span>
-                <span className="text-sm font-medium">467,213 ETB</span>
+                <span className="text-sm font-medium">{t('collected')} ({stats.collection.percentage}%)</span>
+                <span className="text-sm font-medium">{stats.collection.collected} ETB</span>
               </div>
               <div className="mt-2 h-4 w-full overflow-hidden rounded-full bg-secondary">
-                <div className="h-full bg-primary" style={{ width: "40%" }} />
+                <div className="h-full bg-primary" style={{ width: `${stats.collection.percentage}%` }} />
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('still_owed')}:</span>
-                <span className="font-medium">698,021 ETB</span>
+                <span className="font-medium">{stats.collection.stillOwed} ETB</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('invoices_paid')}:</span>
-                <span className="font-medium">35 of 90</span>
+                <span className="font-medium">{stats.collection.invoicesPaid} of {stats.collection.totalInvoices}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('occupancy')}:</span>
-                <span className="font-medium">102 of 102 Units</span>
+                <span className="font-medium">{stats.collection.occupiedUnits} of {stats.collection.totalUnits} Units</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{t('utilities')}:</span>
-                <span className="font-medium">896 m³ Water | 11,763 kWh Power</span>
+                <span className="font-medium">{stats.collection.waterConsumption} m³ Water | {stats.collection.powerConsumption} kWh Power</span>
               </div>
             </div>
           </CardContent>
