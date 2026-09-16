@@ -117,11 +117,13 @@ model WorkspaceMember {
   id           String   @id @default(uuid())
   workspace_id String
   user_id      String
+  unit_id      String?
   role         Role     @default(TENANT)
   created_at   DateTime @default(now()) @db.Timestamptz
 
   workspace Workspace @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  unit      Unit?     @relation(fields: [unit_id], references: [id], onDelete: SetNull)
 
   @@unique([workspace_id, user_id])
   @@map("workspace_members")
@@ -143,6 +145,7 @@ model Unit {
   tickets         MaintenanceTicket[]
   meter_readings  MeterReading[]
   message_threads MessageThread[]
+  members         WorkspaceMember[]
 
   @@unique([workspace_id, unit_number])
   @@index([workspace_id, status])

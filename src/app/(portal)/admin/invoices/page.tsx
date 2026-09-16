@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { reviewPaymentSlip } from "@/actions";
+import { approvePaymentSlip, rejectPaymentSlip } from "@/actions/admin";
 
 export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<string | null>("101-1");
@@ -152,7 +152,18 @@ export default function InvoicesPage() {
                     <Badge variant="outline" className="cursor-pointer hover:bg-muted">Wrong Amount</Badge>
                     <Badge variant="outline" className="cursor-pointer hover:bg-muted">Wrong Account</Badge>
                   </div>
-                  <Button variant="destructive" className="w-full mt-2">Reject Payment</Button>
+                  <Button
+                     variant="destructive"
+                     className="w-full mt-2"
+                     onClick={async () => {
+                        try {
+                           await rejectPaymentSlip('mock-invoice-id', 'Blurry');
+                           alert("Payment rejected (mock)");
+                        } catch (e) {
+                           alert("Error rejecting payment");
+                        }
+                     }}
+                  >Reject Payment</Button>
                 </div>
 
                 <Separator />
@@ -162,9 +173,12 @@ export default function InvoicesPage() {
                   <Button
                     className="w-full bg-green-600 hover:bg-green-700 text-white"
                     onClick={async () => {
-                      // Mock UI calling Server Action
-                      // await reviewPaymentSlip("mock-invoice-id", 'CONFIRM', { verifiedAmount: 13497 });
-                      alert("Payment Confirmed via Server Action (Mocked)");
+                      try {
+                        await approvePaymentSlip('mock-invoice-id', 13497);
+                        alert("Payment confirmed (mock)");
+                      } catch (e) {
+                        alert("Error confirming payment");
+                      }
                     }}
                   >
                     Confirm Payment

@@ -2,27 +2,34 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { setCookie } from "cookies-next"; // need to install this
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
-import { Building2, Home, Wrench } from "lucide-react";
+import { useState, useTransition } from "react";
 import { useI18n } from "@/i18n/context";
+import { doLogin } from "./actions";
 
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
 
-  const login = (role: string) => {
-    // Basic mock authentication: setting a cookie
-    setCookie("user-role", role, { maxAge: 60 * 60 * 24 }); // 1 day
+  const handleAction = async (formData: FormData) => {
+    setError("");
 
-    // Set some mock context for the backend
-    setCookie("workspace-id", "demo-workspace-id", { maxAge: 60 * 60 * 24 });
-    setCookie("user-id", `demo-${role.toLowerCase()}-id`, { maxAge: 60 * 60 * 24 });
-    if (role === "RESIDENT") {
-      setCookie("unit-id", "demo-unit-101", { maxAge: 60 * 60 * 24 });
-    }
-
-    router.push("/");
+    startTransition(async () => {
+      try {
+        const res = await doLogin(formData);
+        if(res.success) {
+           router.push("/");
+        } else {
+           setError(res.error || "Failed to login");
+        }
+      } catch (err: any) {
+        setError("Failed to login");
+      }
+    });
   };
 
   return (
@@ -30,41 +37,47 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">{t('welcome')}</CardTitle>
-          <CardDescription>{t('select_role')}</CardDescription>
+          <CardDescription>Enter your email and password to continue</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Button
-            className="w-full h-16 text-lg flex items-center justify-start gap-4 px-6"
-            variant="outline"
-            onClick={() => login("ADMIN")}
-          >
-            <div className="p-2 bg-primary/10 rounded-full text-primary">
-              <Building2 className="h-6 w-6" />
+        <CardContent>
+          <form action={handleAction} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="admin@example.com"
+                required
+              />
             </div>
-            {t('admin_manager')}
-          </Button>
 
-          <Button
-            className="w-full h-16 text-lg flex items-center justify-start gap-4 px-6"
-            variant="outline"
-            onClick={() => login("RESIDENT")}
-          >
-            <div className="p-2 bg-blue-500/10 rounded-full text-blue-600">
-              <Home className="h-6 w-6" />
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                defaultValue="password"
+                required
+              />
             </div>
-            {t('resident_owner')}
-          </Button>
 
-          <Button
-            className="w-full h-16 text-lg flex items-center justify-start gap-4 px-6"
-            variant="outline"
-            onClick={() => login("STAFF")}
-          >
-            <div className="p-2 bg-orange-500/10 rounded-full text-orange-600">
-              <Wrench className="h-6 w-6" />
-            </div>
-            {t('maintenance_staff')}
-          </Button>
+            {error && <p className="text-sm text-destructive font-medium">{error}</p>}
+
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? "Logging in..." : "Login"}
+            </Button>
+          </form>
+
+          <div className="mt-6 pt-6 border-t text-sm text-muted-foreground">
+             <p className="font-medium mb-2">Demo Accounts (Password: password):</p>
+             <ul className="space-y-1 list-disc pl-5">
+               <li>admin@example.com (Admin)</li>
+               <li>resident@example.com (Resident)</li>
+               <li>staff@example.com (Maintenance)</li>
+             </ul>
+          </div>
         </CardContent>
       </Card>
     </div>

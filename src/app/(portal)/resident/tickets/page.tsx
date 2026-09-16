@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { submitMaintenanceTicket } from "@/actions/resident";
+import { useState } from "react";
 
 export default function ResidentTicketsPage() {
+  const [showModal, setShowModal] = useState(false);
+
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col md:flex-row gap-4 overflow-hidden -mx-4 -mb-4 p-4 md:-mx-6 md:-mb-6 md:p-6 lg:gap-6 relative">
 
@@ -83,10 +87,63 @@ export default function ResidentTicketsPage() {
       </div>
 
       {/* Floating Action Button */}
-      <Button size="lg" className="absolute bottom-6 md:bottom-10 right-6 md:right-10 rounded-full shadow-lg gap-2 h-12 px-6">
+      <Button
+         onClick={() => setShowModal(true)}
+         size="lg"
+         className="absolute bottom-6 md:bottom-10 right-6 md:right-10 rounded-full shadow-lg gap-2 h-12 px-6"
+      >
         <Plus className="h-5 w-5" />
         New Request
       </Button>
+
+      {/* Modal Overlay */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-lg">
+             <form action={async (formData) => {
+                 try {
+                     await submitMaintenanceTicket(formData);
+                     setShowModal(false);
+                 } catch (e) {
+                     alert("Mock DB error: " + e);
+                 }
+             }}>
+                <div className="p-6 space-y-4">
+                   <h2 className="text-xl font-bold">New Maintenance Request</h2>
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium">Title</label>
+                     <Input name="title" required placeholder="Brief description of the issue" />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium">Description</label>
+                     <Input name="description" required placeholder="Detailed explanation" />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium">Category</label>
+                     <select name="category" className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm">
+                        <option value="PLUMBING">Plumbing</option>
+                        <option value="ELECTRICAL">Electrical</option>
+                        <option value="ELEVATOR">Elevator</option>
+                        <option value="DOORS_WINDOWS">Doors / Windows</option>
+                        <option value="OTHER">Other</option>
+                     </select>
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium">Priority</label>
+                     <select name="priority" className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm">
+                        <option value="NORMAL">Normal</option>
+                        <option value="URGENT">Urgent</option>
+                     </select>
+                   </div>
+                </div>
+                <div className="p-6 border-t flex justify-end gap-3 bg-muted/20">
+                   <Button type="button" variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
+                   <Button type="submit">Submit Request</Button>
+                </div>
+             </form>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
