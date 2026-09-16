@@ -22,6 +22,7 @@ export async function markTicketDoing(ticketId: string) {
 
   revalidatePath('/maintenance/tickets');
   revalidatePath('/admin/maintenance');
+  revalidatePath('/resident/tickets');
   return { success: true };
 }
 
@@ -41,5 +42,6 @@ export async function markTicketDone(ticketId: string) {
 
   revalidatePath('/maintenance/tickets');
   revalidatePath('/admin/maintenance');
+  revalidatePath('/resident/tickets');
   return { success: true };
 }

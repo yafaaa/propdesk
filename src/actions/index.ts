@@ -50,7 +50,8 @@ export async function reviewPaymentSlip(invoiceId: string, action: 'CONFIRM' | '
     });
   }
 
-  revalidatePath('/invoices');
+  revalidatePath('/admin/invoices');
+  revalidatePath('/resident/dues');
   return { success: true };
 }
 
@@ -66,7 +67,9 @@ export async function claimTicket(ticketId: string) {
     }
   });
 
-  revalidatePath('/maintenance');
+  revalidatePath('/admin/maintenance');
+  revalidatePath('/maintenance/tickets');
+  revalidatePath('/resident/tickets');
   return { success: true };
 }
 
@@ -86,7 +89,9 @@ export async function createTicket(data: { unitId: string, title: string, catego
     }
   });
 
-  revalidatePath('/maintenance');
+  revalidatePath('/admin/maintenance');
+  revalidatePath('/maintenance/tickets');
+  revalidatePath('/resident/tickets');
   return { success: true, ticketId: ticket.id };
 }
 
@@ -107,7 +112,6 @@ export async function dispatchAnnouncement(data: { title: string, body: string, 
     }
   });
 
-  // Here we would dispatch Telegram bot Webhooks if configured
-  revalidatePath('/announcements');
+  revalidatePath('/admin/announcements');
   return { success: true, announcementId: announcement.id };
 }

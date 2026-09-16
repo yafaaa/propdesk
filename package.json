@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "seed": "npx ts-node prisma/seed.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma skills sync || true"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
