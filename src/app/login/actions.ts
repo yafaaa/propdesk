@@ -20,12 +20,12 @@ export async function doLogin(formData: FormData) {
     });
 
     if (!user || user.memberships.length === 0) {
-      throw new Error("Invalid credentials or no workspace membership");
+      return { success: false, error: "Invalid credentials or no workspace membership" };
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
-        throw new Error("Invalid credentials");
+        return { success: false, error: "Invalid credentials" };
     }
 
     const membership = user.memberships[0];
