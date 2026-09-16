@@ -36,6 +36,7 @@ export async function approvePaymentSlip(invoiceId: string, verifiedAmount: numb
   ]);
 
   revalidatePath('/admin/invoices');
+  revalidatePath('/resident/dues');
   return { success: true };
 }
 
@@ -71,5 +72,6 @@ export async function rejectPaymentSlip(invoiceId: string, reason: string) {
   ]);
 
   revalidatePath('/admin/invoices');
+  revalidatePath('/resident/dues');
   return { success: true };
 }
