@@ -1,271 +1,607 @@
-# Jules Brief: Real Property Management Workflows for Production
+# Jules QA Brief: Complete Role-Based Clickable and Feature Audit
 
-## Purpose
+## Mission
 
-Make the Propdesk production application a real, database-backed property-management product. Use the shared property-management workflows visible in the Propdesk demo as behavioral inspiration, but do not copy demo-only features, branding, code, data, or integrations.
+Turn the current Propdesk application into a real, usable property-management application. Every visible interactive control must either work end to end or be removed/disabled until it is implemented. Every role must see the same underlying records through a different authorized view.
 
-Reference applications:
+Reference production URL: https://propdesk-smoky.vercel.app/
 
-- Demo reference: https://kokebhoa.org/demo
-- Current production app: https://propdesk-smoky.vercel.app/
+Reference demo URL: https://kokebhoa.org/demo
 
-The demo opened to an install/entry screen in the review session. Therefore, this document does not claim undocumented demo behavior. The implementation target is the shared core already defined by the repository SRS: workspaces, units and residents, billing, payment evidence, maintenance, upkeep, announcements, profiles, and role-based access.
+The demo is a behavioral reference only. Do not copy demo-only features, branding, code, seed data, AI, Telegram, OCR, sensor telemetry, online payments, inventory, purchase orders, or unrelated facility modules. Implement only the shared property-management workflows: workspace, units, residents, billing, payment evidence, maintenance, upkeep, announcements, profile, and role access.
 
-## Non-negotiable Scope Boundary
+## QA Result
 
-Build common property-management behavior only. Do not add features merely because they may exist in the demo.
+The current production build is not feature-complete. Most screens render, but many controls are decorative, mocked, linked to the wrong role, or point to routes that do not exist.
 
-Do not add:
+High-severity findings:
 
-- AI assistants, AI-generated recommendations, or AI shortcuts
-- Telegram, SMS, email, or other external messaging integrations
-- OCR or automatic payment-slip parsing
-- Sensor or automated utility-meter integrations
-- Online payment gateways
-- Advanced accounting, budgeting, or financial reporting
-- Commercial/factory/HR modules unrelated to association property management
-- Complex lease, legal, or tenancy-management features
-- Demo branding, demo seed data, or hard-coded demo values in production
+1. Login is role selection, not authentication. It writes predictable client cookies.
+2. Middleware trusts editable role, workspace, user, and unit cookies.
+3. The portal layout defaults to `ADMIN` when role context is absent.
+4. Resident dashboard links Announcements to `/admin/announcements`, which is an admin route.
+5. Resident dues and messages routes are advertised but do not exist.
+6. Maintenance messages and tickets routes are advertised but do not exist.
+7. Settings is advertised for all roles but no settings route exists.
+8. Admin announcement submission only shows a mock alert and does not save anything.
+9. Admin payment confirmation only shows a mock alert and does not update an invoice.
+10. Admin ticket claiming only shows a mock alert and does not assign a ticket.
+11. Dashboards and detail pages display hard-coded demo records, amounts, names, dates, and counters.
+12. Many cards and badges have a pointer cursor but no click handler.
+13. Header search, notifications, and user menu do not perform an action.
+14. There is no real logout control.
 
-## Current Production Gaps
+## Testing Evidence and Limitation
 
-The current application has a useful Prisma model foundation, but the live UI is still mostly a demo shell:
+The live Vercel app was opened and the admin session was exercised at `/admin` and `/admin/announcements`. The admin page rendered its dashboard and announcement composer. The primary announcement button is visibly present but the source confirms it calls an alert instead of the server action.
 
-1. Login selects a role and writes predictable cookies instead of authenticating a real user.
-2. `getTenantContext()` falls back to `demo-workspace-id` and `demo-admin-user-id`.
-3. Middleware trusts client-controlled cookies for workspace, user, and role context.
-4. Dashboard, profile, resident, maintenance, and calendar screens contain hard-coded values.
-5. Several buttons show alerts or comments saying the server action is mocked instead of saving data.
-6. The calendar list is a placeholder and its events are mocked.
-7. The current invoice flow does not yet expose a complete resident submission and administrator review workflow.
-8. Maintenance tickets do not retain status history, descriptions, attachments, notes, or completion records.
-9. There is no complete admin workflow for managing units, residents, members, recurring dues, or invoice generation.
-10. Several sidebar routes exist without corresponding complete database-backed pages.
+Unauthenticated direct requests to `/`, `/admin/*`, `/resident/*`, `/maintenance/*`, and `/settings` redirect to login, which is expected for protected routes. The production build exposes these implemented pages only:
 
-Every production-facing number, status, name, date, and list must eventually come from the database or an explicit empty state.
+- `/`, `/login`
+- `/admin`, `/admin/announcements`, `/admin/calendar`, `/admin/community`, `/admin/invoices`, `/admin/maintenance`, `/admin/profile`
+- `/maintenance`, `/maintenance/profile`, `/maintenance/tools`
+- `/resident`, `/resident/profile`, `/resident/tickets`
 
-## Route-by-Route Parity Contract
+The browser test context did not support clearing or injecting cookies, so a clean resident and staff session could not be switched into the already-shared browser context. The resident and staff findings below are therefore verified against the live route map plus the current source implementation. Jules must add automated browser tests that create real users for all three roles and execute the flows below before calling the work complete.
 
-This section is the required implementation checklist. A route is not complete when it merely renders; its visible controls must perform the listed server-backed action and its data must be scoped to the current workspace and role.
+## Definition Of Interactive Completion
 
-### Shared shell and routing
+For every button, link, tab, switch, input, clickable card, badge, menu item, and form:
 
-Current problems:
+1. It has a clear role-appropriate purpose.
+2. It has a real handler or a real navigation target.
+3. The handler validates input on the server.
+4. The action reads/writes the database within the current workspace.
+5. The UI shows loading, success, empty, and error states.
+6. Related role views and dashboard counts update after success.
+7. Unauthorized users cannot invoke the action by changing the URL, form data, cookies, or request headers.
+8. A control that is out of scope is removed, not left as a dead clickable decoration.
 
-- The portal layout defaults to `ADMIN` when the role header is absent.
-- The middleware authorizes from editable `user-role`, `workspace-id`, `user-id`, and `unit-id` cookies.
-- The production navigation exposes links such as `/resident/dues`, `/resident/messages`, `/maintenance/messages`, and `/maintenance/tickets` without complete route implementations.
-- Role redirects can hide an authorization problem by sending the user back to `/` instead of showing a clear forbidden state.
+## Access-Control Contract
 
-Required behavior:
+### Admin / association manager may
 
-- Every protected request resolves a real session and membership before rendering.
-- Render navigation only for routes that exist and are authorized for that role.
-- Use one shared route map for desktop sidebar, mobile navigation, dashboard quick actions, and deep links.
-- Unauthorized access returns a clear 403/Not permitted state or redirects to the role's own dashboard with a message; it must never produce a blank page or generic error.
-- Add route smoke tests for every role and every navigation link.
+- Configure the workspace.
+- Create, edit, deactivate, and list units.
+- Create users and assign workspace memberships.
+- Assign residents/owners to units.
+- Create invoices and charges.
+- Review, approve, reject, and adjust payment evidence.
+- View and manage all workspace maintenance tickets.
+- Assign staff, schedule visits, add notes, resolve, and close tickets.
+- Create and complete upkeep events.
+- Publish announcements to all residents or selected units.
+- View workspace-scoped operational summaries.
 
-### Admin / association manager
+### Resident / unit owner may
 
-| Route | Current behavior | Required behavior |
-|---|---|---|
-| `/admin` | Hard-coded counts, collection totals, occupancy, utilities, and month | Query workspace-scoped aggregates. Period switch changes the query. Cards link to filtered invoices, tickets, units, or upkeep. Empty workspace shows zero state. |
-| `/admin/invoices` | Hard-coded units/invoices; `Confirm Payment` displays a mock alert; reject/adjust controls do not persist; slip preview is a placeholder | Query invoice/payment-review queue. Search and tabs filter real records. Open a real slip/reference. Confirm, reject, and adjust call transactional server actions, show errors, and update the queue and dashboard exactly once. |
-| `/admin/maintenance` | Hard-coded tickets; duplicate `Claim & start` buttons; claim action is mocked | Query real tickets with filters for status, priority, assignee, unit, and text. Log Ticket opens a validated form. Claim changes assignment/status. Admin can assign, reschedule, add notes, resolve, and close. Persist history. |
-| `/admin/calendar` | Dates and events are hard-coded; Add Reminder and list view are placeholders | Query `UpkeepEvent` plus permitted linked due dates/ticket visits. Add/edit/complete/delete reminder with validation. Calendar and list show the same records and filters. Selected date is not fixed to 2026. |
-| `/admin/announcements` | Compose form renders; Send button shows `Announcement Dispatched via Server Action (Mocked)` and never calls the action | Submit `dispatchAnnouncement` for real. Validate title/body/target/schedule. Specific-unit mode must select units and persist targeting. Show saved announcements with status, author, dates, pin, edit/archive controls. |
-| `/admin/community` | Feed, likes, comments, threads, search, and Send controls are static demo content | Either connect each control to persisted announcement/message records or remove it from this release. Do not display fake conversations. Community feed must use the same announcement visibility rules as resident announcements. |
-| `/admin/profile` | Displays demo association/user values | Load current user and workspace. Edit profile and workspace fields with authorization, validation, and success/error state. |
-| `/admin` unit/member management | No complete route is exposed for units/residents/members | Add an admin route for units and memberships: create/edit/deactivate unit, invite/create user, assign role, attach resident to unit, search/filter, and audit changes. |
+- View only their own workspace membership and allowed unit(s).
+- View their invoices, balances, due dates, and payment-review status.
+- Submit payment evidence for their own invoices.
+- View announcements targeted to their workspace/unit/role.
+- Create and track maintenance requests for their allowed unit.
+- Edit or cancel their own request only while its status permits it.
+- Edit allowed profile fields.
 
-### Resident / unit owner
+### Maintenance staff may
 
-| Route or action | Current behavior | Required behavior |
-|---|---|---|
-| `/resident` | `hasInvoice = true`, amount/date/status and quick-action counts are hard-coded | Load the authenticated resident's units and invoices. Month navigation changes the query. Show unpaid/overdue/paid/empty states from the database. No resident can see another unit. |
-| Resident announcements | Dashboard links to `/admin/announcements`, which is the wrong role route and is blocked by RBAC | Add `/resident/announcements` or `/resident/community` and point all resident links there. Query only announcements targeted to the resident's workspace/unit/role. Read/pinned/expiry behavior must be real. |
-| Resident dues/invoices | `/resident/dues` is linked but not implemented in the route tree | Add the route. List invoice details, balance, due date, history, and payment-submission status. Provide a real payment-evidence form with file/reference validation. |
-| `/resident/tickets` | One hard-coded ticket; filters do not filter; Edit/Cancel and New Request do nothing | Query only tickets reported by or assigned to the resident's allowed unit. Filters work. New Request creates a ticket with title, description, category, location, priority, attachment, and optional visit availability. Resident can cancel/edit only while allowed by status. Show history and staff updates. |
-| Resident community/messages | Quick links and route are absent or point to admin content | Provide a resident-safe read view for announcements. Direct messaging is optional for the core release; if shown, it must be persisted and workspace-scoped, otherwise remove the control. |
-| Resident profile | Demo identity/unit and static help rows | Load profile and membership. Allow permitted profile edits. Help/legal/about rows must either link to real content or be removed; do not present inactive controls as complete features. |
-| Meter submission | `Submit meter` is a non-functional button and automatic meter features are out of scope | Do not expose it in the core release unless manual meter reading is explicitly accepted as a common workflow. If retained, implement manual input only with validation and workspace/unit scoping. |
+- View only assigned or explicitly authorized work orders.
+- Claim eligible work if the workflow permits staff self-assignment.
+- Update work status, visit time, notes, and completion details.
+- View announcements targeted to staff.
+- Edit allowed profile fields.
 
-### Maintenance staff
+### Must be forbidden
 
-| Route or action | Current behavior | Required behavior |
-|---|---|---|
-| `/maintenance` | Hard-coded KPIs and quick actions; no real queue | Query assigned/authorized work orders. Counts are derived from ticket status. Show urgent/open/in-progress/resolved states and links to filtered queues. |
-| Staff ticket queue/detail | Sidebar links to incomplete `/maintenance/tickets`; current dashboard has no functional ticket detail flow | Add queue and detail routes or remove the links. Staff can claim only eligible work, update status, schedule/record visit, add notes, attach completion evidence, and mark resolved. Admin closes. |
-| `/maintenance/tools` | Cards for meters, inventory, purchase orders, assets, tanker telemetry, and expenses do nothing; several are explicitly out of core scope | Replace with links only to implemented core work-order/upkeep/announcement views. Remove sensor telemetry and unrelated facility modules from the first release. |
-| Staff announcements | Navigation implies messages but no complete route exists | Add a read-only staff announcement view using target rules, or remove the link. |
-| Staff profile | Demo identity and static KPIs | Load real user/workspace membership and assigned-ticket counts. Persist permitted profile edits. |
-
-### Cross-role consistency rules
+- Resident cannot open admin invoices, admin community, admin maintenance, admin profile, workspace settings, or another resident's records.
+- Staff cannot approve/reject payments, edit workspace configuration, manage memberships, or access unrelated residents.
+- Admin cannot impersonate a resident by editing cookies or request headers.
+- Any user cannot switch workspace or unit by editing a browser cookie or query parameter.
+- Missing or invalid sessions must not fall back to `demo-workspace-id`, `demo-admin-user-id`, or any other demo identity.
 
-- The same ticket, invoice, announcement, and upkeep record must show consistent status and timestamps across roles, with fields hidden according to authorization rather than duplicated mock data.
-- Admin creates/assigns/reviews; resident submits/views/reports; staff executes/updates. No role should see controls belonging to another role.
-- A resident announcement link must never point to an admin route.
-- A successful mutation must update the current page, related dashboard counters, and other role views after revalidation.
-- Failed mutations must preserve prior data and show an actionable error; browser `alert()` is not a substitute for a persisted result.
-- Every list needs loading, empty, error, pagination or bounded-query behavior, and filters that actually affect the query.
-- Every date and amount must come from stored records and use the workspace timezone/currency.
+## Route and Clickable Audit
 
-## Exact Bug Fixes To Do First
+### Shared login and shell
 
-These are the highest-signal defects visible in the current Vercel app:
+#### `/login`
 
-1. Create the resident announcements route and change the resident dashboard link away from `/admin/announcements`.
-2. Replace the admin announcement mock alert with a real form submission, including target selection and result state.
-3. Replace resident ticket mock content and wire New Request, filters, detail, edit/cancel, and status history.
-4. Replace admin invoice mock content and wire payment review to real invoice/payment-slip records.
-5. Replace admin maintenance mock cards and duplicate buttons with a real query and one action per ticket.
-6. Replace calendar hard-coded dates/events and implement the reminder form and list view.
-7. Remove or disable non-functional navigation/cards instead of leaving clickable-looking dead controls.
-8. Remove all demo fallbacks and hard-coded production values after the database-backed paths exist.
+Current defects:
 
-## Target Roles
+- Three buttons select `ADMIN`, `RESIDENT`, or `STAFF` without email/password, invitation, session lookup, or membership verification.
+- The handler writes `user-role`, `workspace-id`, `user-id`, and `unit-id` directly from the browser.
+- A user can manufacture a role or tenant context.
 
-Keep the existing role direction, with server-side authorization:
+Required:
 
-- `ADMIN` or association manager: workspace setup, units, residents, invoices, payment review, maintenance assignment, upkeep, announcements, reporting.
-- `UNIT_OWNER` or resident: own unit, invoices and balance, payment evidence, announcements, maintenance requests, profile.
-- `STAFF` or maintenance worker: assigned work orders, status updates, notes, completion.
-
-`SUPER_ADMIN` may remain an internal/platform role, but it is not part of the first production workflow unless a concrete workspace-management requirement needs it.
-
-## Required Backend Contract
-
-### 1. Authentication and tenant context
-
-- Replace role-only login with real user authentication using the existing `User` and `WorkspaceMember` models.
-- Store only a signed, server-validated session identifier in the browser.
-- Resolve `userId`, `workspaceId`, and role from the server-side session, never from arbitrary client cookies or request headers.
-- Reject missing or invalid sessions instead of silently falling back to demo IDs.
-- Enforce workspace scoping in every query and mutation.
-- Add authorization helpers such as `requireSession()`, `requireRole()`, and `requireWorkspaceAccess()`.
-- Add logout and session expiry.
-
-### 2. Workspace, units, and residents
+- Replace role selection with real authentication.
+- Resolve role and workspace from a server-side session and `WorkspaceMember` record.
+- Support logout, session expiry, invalid-session handling, and a clear unauthorized state.
+- A development-only demo login may exist only behind an explicit development flag and must never be the production fallback.
 
-- Admin can create and edit workspace details.
-- Admin can create, edit, deactivate, and list units.
-- Admin can associate a user with a unit and role.
-- Resident queries must resolve the resident's allowed unit from membership data, not from a client-provided `unit-id` cookie.
-- Add validation for duplicate unit numbers within a workspace and invalid cross-workspace references.
-
-### 3. Billing and invoices
+#### Header
 
-- Admin can configure a recurring or one-time charge for a unit and billing period.
-- Generate invoices with amount, billing month, issue date, due date, and balance.
-- Support clear business statuses: `UNPAID`, `PARTIALLY_PAID`, `PAID`, `OVERDUE`, `DISPUTED`, `WAIVED`.
-- Derive `OVERDUE` from due date and remaining balance; do not store contradictory manual counters.
-- Resident sees only their own invoices and balance.
-- Admin can filter by period, unit, resident, and status.
-- Use database transactions for invoice balance changes.
+Current clickable controls:
 
-### 4. Payment evidence review
-
-- Resident submits payment evidence containing invoice, claimed amount, payment method/reference, optional file, and note.
-- Store a separate review status for the submission: `PENDING`, `APPROVED`, `REJECTED`.
-- Admin can approve, reject with a reason, or adjust the verified amount.
-- Approval must be idempotent and transactional: an already approved submission cannot be approved twice or double-counted.
-- Rejection must preserve the outstanding invoice balance.
-- Record reviewer and review timestamp.
-- Do not implement OCR or automatic bank/SMS integrations.
+- Logo link to `/`.
+- Search input.
+- Language menu.
+- Notification button.
+- User menu button.
 
-### 5. Maintenance requests and work orders
+Required:
 
-- Resident creates a request with title, description, category, location/unit, priority, and optional attachment.
-- Admin can filter, assign, reschedule, update, and close requests.
-- Staff sees only assigned work orders or work orders permitted by role.
-- Use a consistent lifecycle such as `OPEN`, `ASSIGNED`, `IN_PROGRESS`, `RESOLVED`, `CLOSED`, `CANCELLED`.
-- Add notes and completion details.
-- Persist an append-only status/history record with actor and timestamp.
-- Closed requests are immutable except for an admin correction path.
+- Logo returns to the authenticated role dashboard.
+- Search submits a workspace-scoped search and displays results or a no-results state. It must not be a decorative input.
+- Language menu changes all supported UI text without changing authorization or data.
+- Notification button opens a real notification list or is removed until notifications exist.
+- User menu opens profile and logout actions. Logout must invalidate the server session.
 
-### 6. Upkeep and calendar
+#### Sidebar
 
-- Admin creates upkeep events with title, category, date, responsible person, status, and note.
-- Calendar and list views query `UpkeepEvent` records.
-- Support overdue filtering and completion notes.
-- Do not add automated meter collection or external calendar synchronization.
+Current defects:
 
-### 7. Announcements and messages
+- Resident links `/resident/dues` and `/resident/messages`, but neither route exists.
+- Staff links `/maintenance/messages` and `/maintenance/tickets`, but neither route exists.
+- All roles link `/settings`, but it does not exist.
+- Admin sidebar does not link to announcements or calendar even though those pages exist.
 
-- Admin publishes an announcement to all residents, selected units, or staff where supported by the data model.
-- Residents see only announcements addressed to their workspace/unit/role.
-- Store author, publication time, optional schedule/expiry, pinned state, and target scope.
-- Existing comments/likes/direct-message models should not be expanded until the core announcement workflow is complete.
-- Remove the Telegram dispatch comment and any external integration assumptions.
+Required:
 
-### 8. Dashboard and reporting
+- Define one route registry containing route, label, role, and feature status.
+- Render only implemented routes authorized for the current role.
+- Add missing pages before exposing links, or remove the links.
+- Add active route state, keyboard accessibility, and a mobile equivalent.
+- Add admin links for all implemented admin workflows.
 
-- Build dashboard read queries that aggregate saved records for the selected workspace and period.
-- Include collection, outstanding/overdue balances, paid invoices, occupied units, payment reviews, open tickets, and overdue upkeep.
-- Every metric links to its filtered detail page.
-- Empty workspaces must show zero/empty states rather than demo numbers.
-- Add loading, error, and success feedback for all mutations.
+### Admin route audit
 
-## Data-Model Corrections
+#### `/admin`
 
-Review the Prisma schema before implementing UI:
+Current clickable controls:
 
-- Add a real payment-submission status enum and payment metadata rather than inferring review state from invoice state.
-- Add invoice balance/paid-at or an equivalent transaction-safe representation; do not rely only on `claimed_amount` and `verified_amount`.
-- Add maintenance description, location, attachment reference, completion note, and status-history records.
-- Add upkeep status, responsible user, completion note, and optional due/expiry semantics.
-- Add announcement targeting that can safely represent selected units and/or roles.
-- Ensure message threads are workspace-scoped through explicit ownership or a provably safe unit join.
-- Add indexes for the workspace plus the main filtering fields.
-- Use foreign keys and unique constraints to prevent cross-workspace and duplicate records.
+- Export Report button.
+- Review Payments card.
+- Follow Up Overdue card.
+- Manage Work Orders card.
+- Schedule Upkeep card.
 
-Do not migrate or delete production data without a migration plan and backup. Generate a Prisma migration and verify it against a clean database.
+Current defects:
 
-## Implementation Order
+- Export Report has no action.
+- KPI values are hard-coded: `212`, `4`, `59`, `4`.
+- Collection progress is hard-coded to `40%`, `467,213 ETB`, `698,021 ETB`, `35 of 90`, `102 of 102`, and fixed August 2026 text.
+- Cards navigate without passing a filter, so their count and destination can disagree.
 
-1. Add real session authentication and server authorization.
-2. Add workspace/unit/member management and seed one explicit development workspace only.
-3. Replace hard-coded dashboard/profile/resident values with read queries and empty states.
-4. Complete invoice generation, resident invoice views, and payment submission/review transactions.
-5. Complete maintenance request, assignment, status history, and completion flows.
-6. Complete upkeep calendar/list persistence.
-7. Complete announcement targeting and resident/staff reads.
-8. Add focused role and tenant-isolation tests.
-9. Remove mock alerts, demo fallbacks, placeholder copy, and dead routes.
-10. Deploy through a Vercel Preview first, then promote the verified `main` commit to Production.
+Required:
 
-## Acceptance Tests
+- Query all metrics by workspace and selected billing period.
+- Export a real workspace-scoped report or remove the button.
+- Cards navigate with filter parameters that the destination actually applies.
+- Show zero, loading, error, and no-data states.
 
-### Admin
+#### `/admin/invoices`
 
-- Can create a workspace, unit, resident membership, invoice, upkeep event, ticket, and announcement.
-- Can approve/reject payment evidence and see balances/counters update exactly once.
-- Can assign and close a maintenance request.
-- Can view only records in the selected workspace.
+Current clickable controls:
 
-### Resident
+- Search input.
+- By Unit and By Month tabs.
+- Dispute `Res` and `Dism` buttons.
+- Unit/invoice selection cards.
+- Paste SMS button.
+- Mark checked button.
+- View Full Screen button.
+- Reject-reason badges.
+- Reject Payment button.
+- Adjust Amount button.
+- Confirm Payment button.
 
-- Can log in with a real account and see only the assigned unit.
-- Can see current and overdue invoices.
-- Can submit payment evidence and see pending/rejected/approved status.
-- Can create and track a maintenance request.
-- Can read only announcements addressed to the resident.
+Current defects:
 
-### Staff
+- Search and tabs do not query or filter records.
+- Unit 101, Unit 102, invoice amounts, dates, statuses, disputes, and review counts are hard-coded.
+- `Res`, `Dism`, Paste SMS, Mark checked, View Full Screen, reject badges, Reject Payment, and Adjust Amount have no working action.
+- Confirm Payment displays `Payment Confirmed via Server Action (Mocked)` and uses a commented-out mock invoice ID.
+- SMS/OCR/external bank automation is out of scope; the UI must not imply automatic verification.
 
-- Can see assigned work orders.
-- Can update status and add completion notes.
-- Cannot approve payments, edit workspace configuration, or access unrelated residents.
+Required:
 
-### Security and correctness
+- Query a real payment-review queue scoped to the workspace.
+- Search/filter by unit, resident, period, status, and dispute.
+- Use a separate payment submission review status: `PENDING`, `APPROVED`, `REJECTED`.
+- Confirm, reject, or adjust inside a transaction and make approval idempotent.
+- Require rejection reason and record reviewer/timestamp.
+- Display actual uploaded evidence or a truthful no-file state.
+- If manual reference text is supported, store it as payment evidence; do not call it automatic SMS verification.
 
-- A user cannot change workspace, user, role, or unit access by editing browser cookies or request headers.
-- A user from workspace A cannot read or mutate workspace B records.
-- Payment approval is idempotent.
-- Dashboard totals are derived from database records.
-- `npm ci` followed by `npm run build` passes in a clean environment.
-- Vercel Preview deployment is Ready before merging to `main`.
+#### `/admin/announcements`
 
-## Definition Of Done
+Current clickable controls:
 
-The work is complete when the existing Propdesk screens are backed by real server actions and database reads, the role journeys above pass, tenant isolation is tested, no production screen displays hard-coded demo data, and the Vercel production deployment is Ready from the merged `main` commit.
+- Power Outage, Power Restored, Water Outage, Water Restored, Elevator Down template badges.
+- Schedule for later switch.
+- Send to specific units switch.
+- Send to All Residents button.
+
+Current defects:
+
+- Template badges only change local text, which is acceptable only if the final form saves successfully.
+- Schedule switch has no date/time input and does not schedule anything.
+- Specific-units switch has no unit selector and cannot target units.
+- Send button never calls `dispatchAnnouncement`; it displays a mock alert.
+- There is no saved announcement list, edit, archive, expiry, author, or delivery visibility.
+
+Required:
+
+- Validate title and body.
+- Add target selector for all residents, selected units, and staff where supported.
+- Add date/time when scheduling is enabled.
+- Save through `dispatchAnnouncement` and show a pending/scheduled/published result.
+- Show the saved announcement list and visibility rules.
+- Resident and staff views must read the same records with role-appropriate filtering.
+
+#### `/admin/community`
+
+Current clickable controls:
+
+- Feed and Messages tabs.
+- Like button.
+- Comment button.
+- Search unit input.
+- Static thread rows.
+- `+ Message Unit` button.
+- `View Unit` button.
+- Message input and Send icon button.
+
+Current defects:
+
+- Feed post, author, unit, dates, likes, comments, threads, and messages are static demo content.
+- Like, comment, thread selection, search, Message Unit, View Unit, and Send do not persist or navigate.
+- Direct messaging is not required for the core scope unless fully implemented and workspace-scoped.
+
+Required:
+
+- Either implement persisted announcement feed and direct messages with authorization, or remove those controls and static content.
+- Never show fake conversations as real data.
+- Thread access must be workspace-scoped and based on allowed unit/member relationships.
+
+#### `/admin/maintenance`
+
+Current clickable controls:
+
+- Log Ticket.
+- View Schedule.
+- Active/Open/Doing/Urgent/Done tabs.
+- Search tickets input.
+- My Queue button.
+- Three Claim & start buttons.
+
+Current defects:
+
+- Log Ticket and View Schedule do nothing.
+- Tabs, search, and My Queue do not filter data.
+- Tickets are static demo cards.
+- There are duplicate Claim & start buttons on one ticket.
+- Claim actions show a mock alert and use a mock ticket ID.
+- No detail route, assignment selector, notes, status history, resolution, or close action exists.
+
+Required:
+
+- Query real workspace tickets.
+- Make each filter change the query/result set.
+- Add validated ticket creation for admin.
+- Claim/assign changes assignee and status transactionally.
+- Add ticket detail with description, location, priority, reporter, assignee, visit schedule, notes, attachments, history, resolve, and close.
+- Enforce staff/admin differences on every mutation.
+
+#### `/admin/calendar`
+
+Current clickable controls:
+
+- Add Reminder.
+- Calendar date cells.
+- Calendar/List tabs.
+
+Current defects:
+
+- Add Reminder does nothing.
+- Selected date defaults to September 9, 2026.
+- Event cards are hard-coded for September 9 and 5.
+- Legend is static.
+- All Reminders says the list would appear here.
+
+Required:
+
+- Persist `UpkeepEvent` records with title, category, date, responsible person, status, notes, and workspace.
+- Add/edit/complete/delete reminder actions with confirmation and errors.
+- Calendar and list must render the same database records.
+- Include overdue filtering and linked ticket/invoice dates only when those records exist.
+- Do not expose sensor or automated meter features in the core release.
+
+#### `/admin/profile`
+
+Current defects:
+
+- Identity, email, workspace, and location are hard-coded.
+- Settings text is a stub with no controls.
+
+Required:
+
+- Read current user and workspace from the session/database.
+- Add authorized profile/workspace editing or remove the stub.
+- Add a real settings route only for implemented settings.
+
+#### Missing admin management routes
+
+Add an authorized admin workflow for units, residents, and memberships. It must support create/edit/deactivate unit, create/invite user, assign role, attach user to unit, search/filter, and audit. Do not hide this requirement behind hard-coded demo data.
+
+### Resident route audit
+
+#### `/resident`
+
+Current clickable controls:
+
+- Previous/next month buttons.
+- View Bill.
+- Pay / Upload Slip.
+- Report Issue.
+- Announcements.
+- Community Rules.
+- Submit Meter.
+
+Current defects:
+
+- `hasInvoice` is always true.
+- Amount `13,497 ETB`, due date August 15, 2026, and all content are hard-coded.
+- Previous/next month buttons do not change the month.
+- View Bill has no action.
+- Pay / Upload Slip navigates to missing `/resident/dues`.
+- Report Issue is the only valid navigation target.
+- Announcements incorrectly navigates to `/admin/announcements`.
+- Community Rules and Submit Meter are dead controls.
+
+Required:
+
+- Query only the authenticated resident's unit/invoices.
+- Make month navigation query real periods.
+- Add `/resident/dues` for invoice details and payment evidence upload/reference submission.
+- Add `/resident/announcements` or `/resident/community` and link to it.
+- Provide real community rules content or remove that control.
+- Remove meter submission unless manual meter readings are explicitly accepted and fully implemented.
+- Show unpaid, partially paid, paid, overdue, and no-invoice states from stored records.
+
+#### `/resident/dues` (missing)
+
+Required:
+
+- List only the resident's invoices.
+- Show amount, balance, due date, status, payment history, and review state.
+- Submit payment evidence with invoice, amount, method/reference, optional file, and note.
+- Do not allow resident approval, adjustment, or access to another unit.
+
+#### `/resident/messages` (missing)
+
+Required:
+
+- Prefer rename to `/resident/announcements` for the core release.
+- Show only announcements targeted to the resident's workspace/unit/role.
+- If direct messages are included, persist them and enforce participant/workspace access; otherwise remove the link.
+
+#### `/resident/tickets`
+
+Current clickable controls:
+
+- All/Open/Active/Done filter badges.
+- Ticket row.
+- Edit / Cancel.
+- New Request.
+
+Current defects:
+
+- One ticket is hard-coded.
+- Filter badges have no handlers and do not filter.
+- Ticket row has no real selection/data loading.
+- Edit / Cancel has no handler.
+- New Request has no handler or form.
+- Ticket detail description, dates, visit schedule, and history are static.
+
+Required:
+
+- Query only tickets for the resident's allowed unit(s).
+- Implement real filters.
+- Add a New Request form with title, description, category, location, priority, optional attachment, and availability.
+- Allow edit/cancel only before the configured status boundary.
+- Show append-only status history and staff updates.
+
+#### `/resident/profile`
+
+Current clickable controls:
+
+- Guidance accordion.
+- Switch unit account card.
+- Seven resource rows: Documents, Help & support, Show tips again, Report Technical Problem, Community rules, Privacy Policy, About.
+
+Current defects:
+
+- Identity, unit, email, location, KPI counts, and membership age are hard-coded.
+- Guidance includes Telegram, which is out of scope.
+- Switch unit account has no handler.
+- All resource rows are decorative and have no destination/action.
+
+Required:
+
+- Read identity, unit, and counts from database records.
+- Remove Telegram guidance.
+- Implement unit switching only from authorized memberships, or remove it.
+- Link resources to real content/actions or remove the rows.
+- Technical problem reporting must create a real support/maintenance record or be removed.
+
+### Maintenance staff route audit
+
+#### `/maintenance`
+
+Current clickable controls:
+
+- Six quick-action badges: Add Expense, Expenses, Announcement, Tickets, Supplies, Unpaid Follow Up.
+- Three Needs Attention rows.
+- Water Meters and Electric Meters cards.
+
+Current defects:
+
+- Every quick-action badge and card is a pointer-looking non-interactive element.
+- KPIs `2`, `14`, and `96%` are hard-coded.
+- Activity feed is fake: New Ticket, Generator Test, PO Approved.
+- Expenses, supplies, purchase orders, generator, and sensor features are outside the core scope.
+
+Required:
+
+- Replace the dashboard with assigned-work-order data and real counts.
+- Link only to implemented core work-order, upkeep, and authorized announcement views.
+- Remove out-of-scope tools rather than leaving dead cards.
+- Staff cannot see billing approval controls.
+
+#### `/maintenance/tools`
+
+Current clickable-looking cards:
+
+- Water meters, Electric meters, Work orders, Announcements, Unpaid bills, Schedule, Assets & manuals, Tanker reserve, Materials, Purchase orders, Expenses.
+
+Current defects:
+
+- Cards have no click handlers or links.
+- Tanker reserve/sensor telemetry, assets, materials, purchase orders, and expenses are out of scope.
+
+Required:
+
+- Remove this directory or replace it with links to implemented work orders, upkeep, and staff announcements.
+- Do not expose financial/unpaid-bill management to staff beyond a permitted status summary.
+
+#### `/maintenance/tickets` (missing)
+
+Required:
+
+- Add a real assigned queue and detail page, or remove the sidebar link.
+- Staff can view assigned work, claim eligible work, update status, schedule/record a visit, add notes, attach completion evidence, and mark resolved.
+- Admin closes tickets; staff cannot approve payments or edit workspace membership.
+
+#### `/maintenance/messages` (missing)
+
+Required:
+
+- Add read-only staff announcements, or remove the sidebar link.
+- Do not create direct messaging unless it is fully persisted and authorized.
+
+#### `/maintenance/profile`
+
+Current clickable controls:
+
+- Log ticket.
+- All tickets.
+- Unit water meters.
+
+Current defects:
+
+- Identity, contact details, workspace, membership date, and KPI counts are hard-coded.
+- All three buttons do nothing.
+- Unit water meters is out of scope unless manual meter entry is explicitly approved.
+
+Required:
+
+- Load current staff profile and assigned-ticket aggregates.
+- Link Log ticket and All tickets to working authorized routes, or remove them.
+- Remove water-meter action unless it is a real manual workflow.
+
+## Data and Backend Requirements
+
+The existing Prisma schema is a foundation, not proof that the UI works. Add or revise the model to support:
+
+- Server-side sessions and membership-derived role/workspace/unit access.
+- Payment submissions with status, amount, method/reference, file, reviewer, reason, and timestamps.
+- Invoice paid balance and transaction-safe approval.
+- Maintenance description, location, attachment, completion note, and append-only status history.
+- Upkeep status, responsible user, completion note, and workspace scope.
+- Announcement targeting for all residents, selected units, and any supported staff scope.
+- Explicit workspace ownership for message threads.
+- Foreign keys, unique constraints, and indexes preventing cross-workspace records.
+
+Every server action must:
+
+1. Resolve the authenticated session.
+2. Verify role permission.
+3. Verify workspace and record ownership.
+4. Validate input with a shared schema.
+5. Use a transaction for related financial/status updates.
+6. Return structured success/error data.
+7. Revalidate affected pages.
+
+Never use a client-provided `workspace-id`, `user-id`, `unit-id`, or role as authority. Never fall back to demo IDs in production.
+
+## Required Automated Tester Suite
+
+Jules must add browser/API tests that run against a seeded test database. For each test, capture URL, role, action, expected result, actual result, and screenshot/log on failure.
+
+### Admin flow
+
+1. Login as admin.
+2. Open dashboard; verify metrics are database-derived.
+3. Open every sidebar link and every dashboard card.
+4. Search/filter invoices by unit, month, and status.
+5. Open a payment submission; approve, reject, and adjust in separate test records.
+6. Verify duplicate approval does not double-count.
+7. Create, assign, update, resolve, and close a maintenance ticket.
+8. Create, edit, complete, and delete an upkeep reminder.
+9. Publish an all-resident announcement.
+10. Publish a selected-unit announcement.
+11. Verify profile/settings controls either persist or are absent.
+12. Verify export, search, language, notifications, user menu, and logout.
+
+### Resident flow
+
+1. Login as resident with a real membership.
+2. Verify only the resident dashboard/routes are visible.
+3. Open every sidebar link and every dashboard action.
+4. Navigate invoice months and verify records change.
+5. Open an invoice and submit payment evidence.
+6. Verify the resident sees pending/approved/rejected status but cannot review it.
+7. Open announcements and verify workspace/unit targeting.
+8. Create, edit/cancel where allowed, and track a maintenance request.
+9. Verify profile/resources controls work or are removed.
+10. Verify admin/staff URLs return forbidden or safe redirect without exposing data.
+11. Logout and verify protected routes redirect to login.
+
+### Maintenance staff flow
+
+1. Login as staff with assigned and unassigned tickets.
+2. Verify only staff routes and authorized records are visible.
+3. Open every sidebar link and every dashboard action.
+4. Claim eligible work, update status, add note, schedule visit, and resolve.
+5. Verify staff cannot close if closing is admin-only.
+6. Verify staff cannot approve/reject/adjust invoices or edit membership.
+7. Read staff-targeted announcements.
+8. Verify unrelated workspace tickets are inaccessible.
+9. Verify profile actions work or are removed.
+10. Logout and verify protected routes redirect to login.
+
+### Negative access tests
+
+- Resident requests every `/admin/*` route.
+- Staff requests every `/admin/*` and `/resident/*` route.
+- Admin attempts to submit a resident-only mutation with another unit ID.
+- Any role changes cookies and request headers.
+- Any role changes route IDs to another workspace.
+- Expired, missing, and malformed sessions.
+
+Expected result for every negative test: no data leak, no unauthorized mutation, and a clear forbidden/redirect response.
+
+## Completion Gate
+
+Do not call this complete because pages render or the Vercel build passes. Completion requires:
+
+- No dead clickable control remains.
+- No fake demo number/name/date appears in production screens.
+- No route is advertised unless it exists and is authorized.
+- All three roles pass the positive and negative flows above.
+- Resident announcements no longer points to admin announcements.
+- Payment, ticket, announcement, and upkeep mutations persist and update related views.
+- `npm ci` and `npm run build` pass cleanly.
+- Vercel Preview is tested first; only a Ready preview is promoted to Production.
+
